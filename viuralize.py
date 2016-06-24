@@ -19,7 +19,10 @@ def _get_points(conn):
 def show_point(conn):
     sites, spots, shops = _get_points(conn)
     print len(sites[0]), len(spots[0]), len(shops[0])
-    plt.plot(sites[0], sites[1], 'ro', spots[0], spots[1], 'bs', shops[0], shops[1], 'g^')
+    plt.plot(sites[0], sites[1], 'ro', label='site')
+    plt.plot(spots[0], spots[1], 'bs', label='spot')
+    plt.plot(shops[0], shops[1], 'g^', label='shop')
+    plt.legend()
     plt.show()
 
 def show_es_order(conn):
@@ -34,7 +37,7 @@ def show_all(conn):
 def show(conn, plottype):
     if plottype == 'point':
         show_point(conn)
-    elif plottype == 'es_order':
+    elif plottype == 'eb_order':
         show_es_order(conn)
     elif plottype == 'o2o_order':
         show_o2o_order(conn)
@@ -44,7 +47,7 @@ def show(conn, plottype):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) != 2:
-        print "Usage: virualize.py [point|es_order|o2o_order|all]"
+        print "Usage: virualize.py [point|eb_order|o2o_order|all] [siteID|shopID]"
         sys.exit(1)
 
     conn = sqlite3.connect('./Data/data.db')
