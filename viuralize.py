@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sqlite3
+import sqlite3, random
 import matplotlib.pyplot as plt
+import numpy as np
 
 def _get_points(conn):
     cu = conn.cursor()
@@ -56,6 +57,24 @@ def show_o2o_order(conn):
     plt.legend()
     plt.show()
 
+def show_class(conn):
+    cu = conn.cursor()
+    cu.execute("select * from site")
+    sites = cu.fetchall()
+    for site_id, lng, lat in sites:
+        # color = 0xff
+        color = random.randint(1, 0xffffff)
+        cc = '#%06x' % color
+        for table, size, marker in [('spot', 6, 'o'), ('shop', 12, '^')]: 
+            cu.execute("select lng, lat from %s where zone=='%s'" % (table, site_id))
+            arr = np.array(cu.fetchall())
+            if len(arr) == 0:
+                continue
+            plt.plot(arr[:, 0], arr[:, 1], c=cc, ms=size, marker=marker, ls='None')
+        plt.plot([lng], [lat], c=cc, ms=20, marker='*')
+        # color += 0x20000
+    plt.show()
+
 def show_all(conn):
     pass
 
@@ -66,13 +85,15 @@ def show(conn, plottype):
         show_eb_order(conn)
     elif plottype == 'o2o_order':
         show_o2o_order(conn)
+    elif plottype == 'class':
+        show_class(conn)
     else:
         show_all(conn)
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) != 2:
-        print "Usage: virualize.py [point|eb_order|o2o_order|all] [siteID|shopID]"
+        print "Usage: virualize.py [point|eb_order|o2o_order|all|class]"
         sys.exit(1)
 
     conn = sqlite3.connect('./Data/data.db')
