@@ -14,3 +14,7 @@
   
   1. Use zone to mark spots
   2. Use kNN to classify shops
+  3. Caculate total eb_orders of one zone to initialize the number of orders
+  4. Find the zone which a shop of a o2o_order belongs to and add to initial order number
+  5. Find the zone which a spot of a o2o_order belongs to
+  6. Arrange couriers based on initial order number
