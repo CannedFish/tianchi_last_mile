@@ -40,7 +40,8 @@ class Zone(object):
         self._conn = conn
         self._zone = zone
         self._eb_orders = self._initial_eb_orders()
-        self._o2o_orders = self._initial_o2o_orders()
+        self._o2o_orders_start = self._initial_o2o_orders_start()
+        self._o2o_orders_end = self._initial_o2o_orders_end()
 
     def _initial_eb_orders(self):
         cu = self._conn.cursor()
@@ -49,7 +50,7 @@ class Zone(object):
                 order by num" % self._zone)
         return cu.fetchall()
 
-    def _initial_o2o_orders(self):
+    def _initial_o2o_orders_start(self):
         cu = self._conn.cursor()
         ret = []
         for order in cu.execute("select t1.* from o2o_order as t1 \
@@ -61,14 +62,17 @@ class Zone(object):
                     utils.time2minutes(order[4]), \
                     order[5]))
         return ret
+
+    def _initial_o2o_orders_end(self):
+        pass
     
     def get_order_num(self):
-        return len(self._eb_orders) + len(self._o2o_orders)
+        return len(self._eb_orders) + len(self._o2o_orders_start)
 
     def __str__(self):
         return "eb_orders: %d\n%s\no2o_orders: %d\n%s" \
                 % (len(self._eb_orders), self._eb_orders\
-                , len(self._o2o_orders), self._o2o_orders)
+                , len(self._o2o_orders_start), self._o2o_orders_start)
 
 if __name__ == '__main__':
     import sqlite3, sys
