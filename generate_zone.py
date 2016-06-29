@@ -35,6 +35,41 @@ def do_generate(conn, action):
     if action == 'shop' or action == 'all':
         do_classify_shops(conn)
 
+class Zone(object):
+    def __init__(self, conn, zone):
+        self._conn = conn
+        self._zone = zone
+        self._eb_orders = self._initial_eb_orders()
+        self._o2o_orders = self._initial_o2o_orders()
+
+    def _initial_eb_orders(self):
+        cu = self._conn.cursor()
+        cu.execute("select order_id, spot_id, num \
+                from eb_order where site_id=='%s' \
+                order by num" % self._zone)
+        return cu.fetchall()
+
+    def _initial_o2o_orders(self):
+        cu = self._conn.cursor()
+        ret = []
+        for order in cu.execute("select t1.* from o2o_order as t1 \
+                join shop as t2 on t1.shop_id==t2.shop_id \
+                where zone=='%s' \
+                order by pickup_time" % self._zone):
+            ret.append((order[0], order[1], order[2], \
+                    utils.time2minutes(order[3]), \
+                    utils.time2minutes(order[4]), \
+                    order[5]))
+        return ret
+    
+    def get_order_num(self):
+        return len(self._eb_orders) + len(self._o2o_orders)
+
+    def __str__(self):
+        return "eb_orders: %d\n%s\no2o_orders: %d\n%s" \
+                % (len(self._eb_orders), self._eb_orders\
+                , len(self._o2o_orders), self._o2o_orders)
+
 if __name__ == '__main__':
     import sqlite3, sys
     if len(sys.argv) < 2:
@@ -42,7 +77,9 @@ if __name__ == '__main__':
         sys.exit(1)
 
     conn = sqlite3.connect('./Data/data.db')
-    do_generate(conn, sys.argv[1])
+    # do_generate(conn, sys.argv[1])
+    zone1 = Zone(conn, 'A001')
+    print zone1
     conn.close()
 
 # vim: set sw=4 ts=4 softtabstop=4
