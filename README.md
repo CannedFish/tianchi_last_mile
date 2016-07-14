@@ -18,3 +18,4 @@
   4. Find the zone which a shop of a o2o_order belongs to and add to initial order number
   5. Find the zone which a spot of a o2o_order belongs to
   6. Arrange couriers based on initial order number
+  7. Sort spots of each site based on the number of package of an order(Greedy algorithm)

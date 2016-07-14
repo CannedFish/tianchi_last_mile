@@ -64,7 +64,17 @@ class Zone(object):
         return ret
 
     def _initial_o2o_orders_end(self):
-        pass
+        cu = self._conn.cursor()
+        ret = []
+        for order in cu.execute("select t1.* from o2o_order as t1 \
+                join spot as t2 on t1.spot_id==t2.spot_id \
+                where zone=='%s' \
+                order by delivery_time" % self._zone):
+            ret.append((order[0], order[1], order[2], \
+                    utils.time2minutes(order[3]), \
+                    utils.time2minutes(order[4]), \
+                    order[5]))
+        return ret
     
     def get_order_num(self):
         return len(self._eb_orders) + len(self._o2o_orders_start)
