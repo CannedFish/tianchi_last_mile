@@ -3,7 +3,9 @@
 
 from sklearn.neighbors import KNeighborsClassifier
 import numpy as np
+import math
 import utils
+from courier import TOTAL, Courier, CourierPool
 
 def do_mark_spots(conn):
     cu = conn.cursor()
@@ -35,6 +37,10 @@ def do_generate(conn, action):
     if action == 'shop' or action == 'all':
         do_classify_shops(conn)
 
+# eb + o2o
+TOTAL_ORDER = 12487
+c_total = TOTAL
+
 class Zone(object):
     def __init__(self, conn, zone):
         self._conn = conn
@@ -42,6 +48,7 @@ class Zone(object):
         self._eb_orders = self._initial_eb_orders()
         self._o2o_orders_start = self._initial_o2o_orders_start()
         self._o2o_orders_end = self._initial_o2o_orders_end()
+        self._courier_pool = self._initial_courier_pool()
 
     def _initial_eb_orders(self):
         cu = self._conn.cursor()
@@ -79,8 +86,31 @@ class Zone(object):
     def get_order_num(self):
         return len(self._eb_orders) + len(self._o2o_orders_start)
 
+    def _initial_courier_pool(self):
+        """
+        Based on the total number of order to be send
+        and o2o orders whose spot is in this zone, whereas
+        the shop is not.
+        """
+        global c_total
+        num = int(math.floor(self.get_order_num()*124/TOTAL_ORDER))
+        num = 1 if num == 0 else num
+        ret = CourierPool([Courier('D%04d' % (c_total-i)) for i in xrange(num)])
+        print ret
+        c_total -= num
+        return ret
+
+    def add_courier(self, courier):
+        self._courier_pool.add(courier)
+
+    def do_execute(self):
+        """
+        Execute the delivery plan
+        """
+        pass
+
     def __str__(self):
-        return "eb_orders: %d\n%s\no2o_orders: %d\n%s" \
+        return "eb_orders: %d\n%s\no2o_orders: %d\n%s\n" \
                 % (len(self._eb_orders), self._eb_orders\
                 , len(self._o2o_orders_start), self._o2o_orders_start)
 

@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+TOTAL = 1000
+
 class Courier(object):
     def __init__(self, c_id):
         self._id = c_id
         self._orders = []
         self._audit = []
+        self._work_util = 0
         # audit=>(c_id, addr_id, a_time, d_time, num, o_id)
 
     def __eq__(self, other):
@@ -20,19 +23,36 @@ class Courier(object):
     def delivery_order(self):
         pass
 
+    def isFree(self, time):
+        """
+        free=>time >= _work_util
+        busy=>time < _work_util
+        """
+        return time >= self._work_util
+
+    def _best_path(self):
+        pass
+
+    def next(self):
+        """
+        return next order to delivery
+        """
+        pass
+
 class CourierPool(object):
     def __init__(self, couriers):
-        self._idle_couriers = couriers
-        self._busy_couriers = []
+        self._couriers = couriers
 
-    def get(self):
-        courier = self._idle_couriers.pop()
-        self._busy_couriers.append(courier)
-        return courier
+    def get(self, time):
+        for courier in self._couriers:
+            if courier.isFree(time):
+                return courier
+        return False
 
-    def free(self, courier):
-        self._busy_couriers.remove(courier)
-        self._idle_couriers.append(courier)
+    def add(self, courier):
+        if courier in self._couriers:
+            return
+        return self._couriers.append(courier)
 
 if __name__ == '__main__':
     cs = []

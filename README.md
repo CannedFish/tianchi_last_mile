@@ -19,3 +19,9 @@
   5. Find the zone which a spot of a o2o_order belongs to
   6. Arrange couriers based on initial order number
   7. Sort spots of each site based on the number of package of an order(Greedy algorithm)
+
+# Execute
+  1. Initialize zones
+  2. Initialize courierpool of each zone
+  3. Execute plans of zones
+  4. Gather couriers' work path
