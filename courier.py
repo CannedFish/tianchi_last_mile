@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-TOTAL = 1000
-
 class Courier(object):
     def __init__(self, c_id):
         self._id = c_id
@@ -30,7 +28,7 @@ class Courier(object):
         """
         return time >= self._work_util
 
-    def _best_path(self):
+    def _best_path(self, remain_orders):
         pass
 
     def next(self):
@@ -53,6 +51,9 @@ class CourierPool(object):
         if courier in self._couriers:
             return
         return self._couriers.append(courier)
+
+TOTAL = 1000
+# TOTAL_COURIERS = [Courier('D%04d'%i) for i in xrange(TOTAL)]
 
 if __name__ == '__main__':
     cs = []

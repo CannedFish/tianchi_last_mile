@@ -40,6 +40,7 @@ def do_generate(conn, action):
 # eb + o2o
 TOTAL_ORDER = 12487
 c_total = TOTAL
+TOTAL_ZONE = 124
 
 class Zone(object):
     def __init__(self, conn, zone):
@@ -48,7 +49,7 @@ class Zone(object):
         self._eb_orders = self._initial_eb_orders()
         self._o2o_orders_start = self._initial_o2o_orders_start()
         self._o2o_orders_end = self._initial_o2o_orders_end()
-        self._courier_pool = self._initial_courier_pool()
+        self._courier_pool = []
 
     def _initial_eb_orders(self):
         cu = self._conn.cursor()
@@ -86,19 +87,21 @@ class Zone(object):
     def get_order_num(self):
         return len(self._eb_orders) + len(self._o2o_orders_start)
 
-    def _initial_courier_pool(self):
+    def initial_courier_pool(self, couriers, start):
         """
         Based on the total number of order to be send
         and o2o orders whose spot is in this zone, whereas
         the shop is not.
         """
-        global c_total
-        num = int(math.floor(self.get_order_num()*124/TOTAL_ORDER))
+        # global c_total
+        num = int(math.floor(self.get_order_num()*TOTAL/TOTAL_ORDER))
         num = 1 if num == 0 else num
-        ret = CourierPool([Courier('D%04d' % (c_total-i)) for i in xrange(num)])
-        print ret
-        c_total -= num
-        return ret
+        # ret = CourierPool([Courier('D%04d' % (c_total-i)) for i in xrange(num)])
+        self._courier_pool = CourierPool(couriers[start:start+num])
+        return num
+        # print ret
+        # c_total -= num
+        # return ret
 
     def add_courier(self, courier):
         self._courier_pool.add(courier)
