@@ -16,6 +16,7 @@ def initial_courier_pool(zones, couriers):
         start += courier
         # orders += zone.get_order_num()
         print 'Total orders: %d' % zone.get_order_num()
+    # TODO: Handle remain couriers
 
 def plan(zones):
     pass
@@ -33,6 +34,7 @@ if __name__ == '__main__':
     
     __info('initial_zones', 'begin')
     couriers = [Courier('D%04d'%i) for i in xrange(1, TOTAL + 1)]
+    # TODO: change to site object
     zones = [Zone(conn, 'A%03d'%i) for i in xrange(1, TOTAL_ZONE + 1)]
     initial_courier_pool(zones, couriers)
     __info('initial_zones', 'done')

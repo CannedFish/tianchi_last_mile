@@ -6,6 +6,7 @@ import numpy as np
 import math
 import utils
 from courier import TOTAL, Courier, CourierPool
+from order import Order, Orders
 
 def do_mark_spots(conn):
     cu = conn.cursor()
@@ -39,7 +40,6 @@ def do_generate(conn, action):
 
 # eb + o2o
 TOTAL_ORDER = 12487
-c_total = TOTAL
 TOTAL_ZONE = 124
 
 class Zone(object):
@@ -53,36 +53,35 @@ class Zone(object):
 
     def _initial_eb_orders(self):
         cu = self._conn.cursor()
-        cu.execute("select order_id, spot_id, num \
-                from eb_order where site_id=='%s' \
-                order by num" % self._zone)
-        return cu.fetchall()
+        orders = [EBOrder(order) for order in cu.execute(\
+                    "select order_id, spot_id, num \
+                    from eb_order where site_id=='%s' \
+                    order by num" % self._zone)]
+        return Orders(orders)
 
     def _initial_o2o_orders_start(self):
         cu = self._conn.cursor()
-        ret = []
-        for order in cu.execute("select t1.* from o2o_order as t1 \
-                join shop as t2 on t1.shop_id==t2.shop_id \
-                where zone=='%s' \
-                order by pickup_time" % self._zone):
-            ret.append((order[0], order[1], order[2], \
+        orders = [O2OOrder((order[0], order[1], order[2], \
                     utils.time2minutes(order[3]), \
                     utils.time2minutes(order[4]), \
-                    order[5]))
-        return ret
-
+                    order[5])) for order in cu.execute(\
+                    "select t1.* from o2o_order as t1 \
+                    join shop as t2 on t1.shop_id==t2.shop_id \
+                    where zone=='%s' \
+                    order by pickup_time" % self._zone)]
+        return Orders(order)
+        
     def _initial_o2o_orders_end(self):
         cu = self._conn.cursor()
-        ret = []
-        for order in cu.execute("select t1.* from o2o_order as t1 \
-                join spot as t2 on t1.spot_id==t2.spot_id \
-                where zone=='%s' \
-                order by delivery_time" % self._zone):
-            ret.append((order[0], order[1], order[2], \
+        orders = [O2OOrder((order[0], order[1], order[2], \
                     utils.time2minutes(order[3]), \
                     utils.time2minutes(order[4]), \
-                    order[5]))
-        return ret
+                    order[5])) for order in cu.execute(\
+                    "select t1.* from o2o_order as t1 \
+                    join spot as t2 on t1.spot_id==t2.spot_id \
+                    where zone=='%s' \
+                    order by delivery_time" % self._zone)]
+        return Orders(orders)
     
     def get_order_num(self):
         return len(self._eb_orders) + len(self._o2o_orders_start)
@@ -93,24 +92,33 @@ class Zone(object):
         and o2o orders whose spot is in this zone, whereas
         the shop is not.
         """
-        # global c_total
         num = int(math.floor(self.get_order_num()*TOTAL/TOTAL_ORDER))
         num = 1 if num == 0 else num
-        # ret = CourierPool([Courier('D%04d' % (c_total-i)) for i in xrange(num)])
         self._courier_pool = CourierPool(couriers[start:start+num])
         return num
-        # print ret
-        # c_total -= num
-        # return ret
 
     def add_courier(self, courier):
         self._courier_pool.add(courier)
 
-    def do_execute(self):
+    @staticmethod
+    def plan_by_DP(orders):
+        """
+        return ordered orders
+        """
+        pass
+
+    def do_plan(self):
         """
         Execute the delivery plan
         """
-        pass
+        # es_orders' plan
+        while True:
+            orders = self._eb_orders.remain()
+            if len(orders) == 0:
+                break
+            courier = self._courier_pool.get()
+            courier.pickup_order(Zone.plan_by_DP(orders))
+        # o2o_orders' plan
 
     def __str__(self):
         return "eb_orders: %d\n%s\no2o_orders: %d\n%s\n" \

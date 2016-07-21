@@ -4,9 +4,10 @@
 class Courier(object):
     def __init__(self, c_id):
         self._id = c_id
-        self._orders = []
+        self._orders = [] # a 2d list
         self._audit = []
         self._work_util = 0
+        self._stay_at = (0, 0) # stay at where now
         # audit=>(c_id, addr_id, a_time, d_time, num, o_id)
 
     def __eq__(self, other):
@@ -15,33 +16,37 @@ class Courier(object):
     def __str__(self):
         return "<courier: %s>" % self._id
 
-    def pickup_order(self):
+    def pickup_order(self, order):
+        # add an order && modify assgin property of this order
+        map(lambda x: x.assgin(), order)
+        self._orders.append(order)
+        # TODO: calc time use and modify stay position
+
+    def delivery_order(self, start, end):
+        # remove an order && recode the time used
         pass
 
-    def delivery_order(self):
-        pass
-
-    def isFree(self, time):
+    def isFree(self, time=0):
         """
         free=>time >= _work_util
         busy=>time < _work_util
         """
-        return time >= self._work_util
+        return True if time == 0 else time >= self._work_util
 
-    def _best_path(self, remain_orders):
-        pass
+    # def _best_path(self, remain_orders):
+        # pass
 
-    def next(self):
-        """
-        return next order to delivery
-        """
-        pass
+    # def next(self):
+        # """
+        # return next order to delivery
+        # """
+        # pass
 
 class CourierPool(object):
     def __init__(self, couriers):
         self._couriers = couriers
 
-    def get(self, time):
+    def get(self, time=0):
         for courier in self._couriers:
             if courier.isFree(time):
                 return courier
