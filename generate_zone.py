@@ -6,7 +6,7 @@ import numpy as np
 import math
 import utils
 from courier import TOTAL, Courier, CourierPool
-from order import Order, Orders
+from orders import EBOrder, O2OOrder, Orders
 
 def do_mark_spots(conn):
     cu = conn.cursor()
@@ -64,19 +64,19 @@ class Zone(object):
         orders = [O2OOrder((order[0], order[1], order[2], \
                     utils.time2minutes(order[3]), \
                     utils.time2minutes(order[4]), \
-                    order[5])) for order in cu.execute(\
+                    order[5], order[6])) for order in cu.execute(\
                     "select t1.* from o2o_order as t1 \
                     join shop as t2 on t1.shop_id==t2.shop_id \
                     where zone=='%s' \
                     order by pickup_time" % self._zone)]
-        return Orders(order)
+        return Orders(orders)
         
     def _initial_o2o_orders_end(self):
         cu = self._conn.cursor()
         orders = [O2OOrder((order[0], order[1], order[2], \
                     utils.time2minutes(order[3]), \
                     utils.time2minutes(order[4]), \
-                    order[5])) for order in cu.execute(\
+                    order[5], order[6])) for order in cu.execute(\
                     "select t1.* from o2o_order as t1 \
                     join spot as t2 on t1.spot_id==t2.spot_id \
                     where zone=='%s' \
@@ -105,20 +105,24 @@ class Zone(object):
         """
         return ordered orders
         """
-        pass
+        return orders
 
     def do_plan(self):
         """
         Execute the delivery plan
         """
+        print "planning %s..." % self._zone
+        # TODO: o2o_orders' plan
         # es_orders' plan
         while True:
             orders = self._eb_orders.remain()
             if len(orders) == 0:
                 break
             courier = self._courier_pool.get()
+            if not courier:
+                print "%s has no courier free" % self._zone
+                break
             courier.pickup_order(Zone.plan_by_DP(orders))
-        # o2o_orders' plan
 
     def __str__(self):
         return "eb_orders: %d\n%s\no2o_orders: %d\n%s\n" \

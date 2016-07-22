@@ -19,7 +19,8 @@ def initial_courier_pool(zones, couriers):
     # TODO: Handle remain couriers
 
 def plan(zones):
-    pass
+    for zone in zones:
+        zone.do_plan()
 
 def result(couriers):
     """

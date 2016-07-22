@@ -6,9 +6,10 @@ class Courier(object):
         self._id = c_id
         self._orders = [] # a 2d list
         self._audit = []
-        self._work_util = 0
+        self._busy = [] # (start, end)
         self._stay_at = (0, 0) # stay at where now
         # audit=>(c_id, addr_id, a_time, d_time, num, o_id)
+        # TODO: How to express the couriers's state
 
     def __eq__(self, other):
         return self._id == other._id
@@ -20,7 +21,7 @@ class Courier(object):
         # add an order && modify assgin property of this order
         map(lambda x: x.assgin(), order)
         self._orders.append(order)
-        # TODO: calc time use and modify stay position
+        # TODO: calc time used and modify stay position
 
     def delivery_order(self, start, end):
         # remove an order && recode the time used
@@ -28,10 +29,17 @@ class Courier(object):
 
     def isFree(self, time=0):
         """
-        free=>time >= _work_util
-        busy=>time < _work_util
+        time is not in _busy
         """
-        return True if time == 0 else time >= self._work_util
+        if time == 0:
+            return True
+        if time < 0: # or time > 840
+            return False
+
+        for t in self._busy:
+            if time >= t[0] and time <= t[1]:
+                return False
+        return True
 
     # def _best_path(self, remain_orders):
         # pass
