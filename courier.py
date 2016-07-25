@@ -1,21 +1,42 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+class Action(object):
+    def __init__(self, s_point, e_point, s_time, e_time, orders):
+        self._s_point = s_point
+        self._e_point = e_point
+        self._s_time = s_time
+        self._e_time = e_time
+        self._orders = orders
+
+    def __lt__(self, other):
+        return self._e_time <= other._s_time
+
 class Courier(object):
     def __init__(self, c_id):
         self._id = c_id
-        self._orders = [] # a 2d list
-        self._audit = []
-        self._busy = [] # (start, end)
-        self._stay_at = (0, 0) # stay at where now
         # audit=>(c_id, addr_id, a_time, d_time, num, o_id)
         # TODO: How to express the couriers's state
+        self._actions = []
 
     def __eq__(self, other):
         return self._id == other._id
 
     def __str__(self):
         return "<courier: %s>" % self._id
+
+    def assgin(self, action):
+        """
+        A seriel of eb_orders
+        """
+        self._actions.append(action)
+        self._actions.sort()
+
+    def extend_o2o_action(self, o2o_action, orders):
+        """
+        Try extend an o2o order action with eb orders
+        """
+        pass
 
     def pickup_order(self, order):
         # add an order && modify assgin property of this order

@@ -5,7 +5,7 @@ from sklearn.neighbors import KNeighborsClassifier
 import numpy as np
 import math
 import utils
-from courier import TOTAL, Courier, CourierPool
+from courier import TOTAL, Courier, CourierPool, Action
 from orders import EBOrder, O2OOrder, Orders
 
 def do_mark_spots(conn):
@@ -112,7 +112,7 @@ class Zone(object):
         Execute the delivery plan
         """
         print "planning %s..." % self._zone
-        # TODO: o2o_orders' plan
+        # TODO: o2o_orders' plan, new a o2o action, and extend it with eb orders
         # es_orders' plan
         while True:
             orders = self._eb_orders.remain()
@@ -122,7 +122,9 @@ class Zone(object):
             if not courier:
                 print "%s has no courier free" % self._zone
                 break
-            courier.pickup_order(Zone.plan_by_DP(orders))
+            planned_orders = Zone.plan_by_DP(orders)
+            # TODO: generate an eb order action based on dp
+            courier.assgin()
 
     def __str__(self):
         return "eb_orders: %d\n%s\no2o_orders: %d\n%s\n" \
