@@ -22,6 +22,15 @@ class Order(object):
     def isAssgined(self):
         return self._assign
 
+    def num(self):
+        return self._package_num
+
+    def target(self):
+        """
+        return (lng, lat) of the target
+        """
+        pass
+
 class EBOrder(Order):
     def __init__(self, order):
         super(EBOrder, self).__init__(order)

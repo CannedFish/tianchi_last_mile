@@ -26,7 +26,8 @@
   2. Initialize courierpool of each zone
   3. Execute plans of zones
   4. Gather couriers' work path
+  5. Calculate the result
 
 # Algorithm ----- DP
-  1. Target: d(i), i<=140(The least time use to send 140 packages at most)
+  1. Target: d(i), i<=140(The least time, which is consist of transfer and dispatch, use to send 140 packages at most)
   2. State function: d(i) = min(d(i-vj) + d(vj)) (vj defines number of package of the jth order)

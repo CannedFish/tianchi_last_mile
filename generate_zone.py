@@ -101,10 +101,22 @@ class Zone(object):
         self._courier_pool.add(courier)
 
     @staticmethod
-    def plan_by_DP(orders):
+    def plan_by_DP(orders, start):
         """
+        orders: list of orders
+        start: lng and lat of start point
         return ordered orders
         """
+        d = [float('inf') for i in xrange(141)] # initialize the state
+        d[0] = 0
+        locate = start
+        for i in xrange(140):
+            p_num = i + 1
+            tmp = filter(lambda x: x.num() == p_num, orders)
+            if len(tmp) == 0: # and cannot be aggregated by small orders
+                continue
+            # TODO: calc distance decompose
+            d[p_num]
         return orders
 
     def do_plan(self):

@@ -16,7 +16,7 @@ class Courier(object):
     def __init__(self, c_id):
         self._id = c_id
         # audit=>(c_id, addr_id, a_time, d_time, num, o_id)
-        # TODO: How to express the couriers's state
+        # Use action as the expression of the couriers's state
         self._actions = []
 
     def __eq__(self, other):
@@ -29,6 +29,7 @@ class Courier(object):
         """
         A seriel of eb_orders
         """
+        map(lambda x: x.assgin(), action._orders)
         self._actions.append(action)
         self._actions.sort()
 
@@ -38,15 +39,21 @@ class Courier(object):
         """
         pass
 
-    def pickup_order(self, order):
-        # add an order && modify assgin property of this order
-        map(lambda x: x.assgin(), order)
-        self._orders.append(order)
-        # TODO: calc time used and modify stay position
-
-    def delivery_order(self, start, end):
-        # remove an order && recode the time used
+    def location(self, time=0):
+        """
+        Return the location based on time
+        """
         pass
+
+    # def pickup_order(self, order):
+        # # add an order && modify assgin property of this order
+        # map(lambda x: x.assgin(), order)
+        # self._orders.append(order)
+        # # TODO: calc time used and modify stay position
+
+    # def delivery_order(self, start, end):
+        # # remove an order && recode the time used
+        # pass
 
     def isFree(self, time=0):
         """
@@ -57,8 +64,8 @@ class Courier(object):
         if time < 0: # or time > 840
             return False
 
-        for t in self._busy:
-            if time >= t[0] and time <= t[1]:
+        for action in self._actions:
+            if time >= action._s_time and time <= action._e_time:
                 return False
         return True
 
