@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+# eb + o2o
+TOTAL_ORDER = 12487
+
 class Order(object):
     def __init__(self, order):
         """

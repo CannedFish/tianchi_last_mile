@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 
-from generate_zone import Zone, TOTAL_ZONE
+from zone import Zone, TOTAL_ZONE
 from courier import Courier, TOTAL
 
 def __info(step, info):
