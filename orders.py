@@ -32,13 +32,14 @@ class Order(object):
         """
         return (lng, lat) of the target
         """
-        pass
+        return self._target
 
 class EBOrder(Order):
     def __init__(self, order):
         super(EBOrder, self).__init__(order)
         self._spot = order[1]
         self._package_num = order[2]
+        self._target = (order[3], order[4])
 
     # TODO: some methods
 
@@ -51,8 +52,12 @@ class O2OOrder(Order):
         self._delivery_time = order[4]
         self._package_num = order[5]
         self._time_spent = order[6]
+        self._shop_addr = order[7]
+        self._target = order[8]
 
     # TODO: some methods
+    def shop(self):
+        return self._shop_addr()
 
 class Orders(object):
     def __init__(self, orders):

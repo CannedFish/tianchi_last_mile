@@ -18,8 +18,10 @@ class Zone(object):
     def _initial_eb_orders(self):
         cu = self._conn.cursor()
         orders = [EBOrder(order) for order in cu.execute(\
-                    "select order_id, spot_id, num \
-                    from eb_order where site_id=='%s' \
+                    "select t1.*, t2.lng, t2.lat \
+                    from eb_order as t1 \
+                    join spot as t2 on t1.spot_id==t2.spot_id \
+                    where site_id=='%s' \
                     order by num" % self._zone)]
         return Orders(orders)
 
@@ -28,9 +30,13 @@ class Zone(object):
         orders = [O2OOrder((order[0], order[1], order[2], \
                     utils.time2minutes(order[3]), \
                     utils.time2minutes(order[4]), \
-                    order[5], order[6])) for order in cu.execute(\
-                    "select t1.* from o2o_order as t1 \
+                    order[5], order[6], \
+                    (order[7], order[8]), \
+                    (order[9], order[10]))) for order in cu.execute(\
+                    "select t1.*, t2.lng, t2.lat, t3.lng, t3.lat \
+                    from o2o_order as t1 \
                     join shop as t2 on t1.shop_id==t2.shop_id \
+                    join spot as t3 on t1.spot_id==t3.spot_id \
                     where zone=='%s' \
                     order by pickup_time" % self._zone)]
         return Orders(orders)
@@ -40,9 +46,14 @@ class Zone(object):
         orders = [O2OOrder((order[0], order[1], order[2], \
                     utils.time2minutes(order[3]), \
                     utils.time2minutes(order[4]), \
-                    order[5], order[6])) for order in cu.execute(\
-                    "select t1.* from o2o_order as t1 \
+                    order[5], order[6], \
+                    (order[7], order[8]), \
+                    (order[9], order[10]))) for order in cu.execute(\
+                    # "select t1.* from o2o_order as t1 \
+                    "select t1.*, t2.lng, t2.lat, t3.lng, t3.lat \
+                    from o2o_order as t1 \
                     join spot as t2 on t1.spot_id==t2.spot_id \
+                    join spot as t3 on t1.spot_id==t3.spot_id \
                     where zone=='%s' \
                     order by delivery_time" % self._zone)]
         return Orders(orders)
@@ -72,15 +83,32 @@ class Zone(object):
         end: lng and lat of end point
         return ordered orders
         """
+        def _in(l, e):
+            """
+            l: list
+            e: element to test
+            return False if e is in l
+            """
+            try:
+                l.index(e)
+            except Exception:
+                return False
+            return True
+
         def _time_spent(order, last):
             """
             order: order object
             last: object in d
             return time spent(this order's plus last's)
             """
+            # avoid loop back!!
+            if _in(last['path'], order):
+                return float('inf')
+            last_order = last['path'][-1]
             return float('inf')
+
         empty_order = EBOrder(('Empty', start, start))
-        d = [{'path':[empty_order], 'cost': float('inf')}\
+        d = [{'path':[empty_order], 'cost': float('inf')} \
                 for i in xrange(141)] # initialize the state
         d[0]['cost'] = 0
         locate = start
@@ -91,7 +119,6 @@ class Zone(object):
                 continue
             # calc d[p_num] = min{d[a] + t(order)}
             # a < p_num, order belongs to tmp
-            # TODO: warning loop back!!
             next_order = min(map(lambda x: \
                     (_time_spent(x, d[p_num-x.num()]), x), \
                     tmp), key=lambda x: x[0])
