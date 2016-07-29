@@ -12,7 +12,7 @@ def initial_courier_pool(zones, couriers):
     orders = 0
     for zone in zones:
         courier = zone.initial_courier_pool(couriers, start)
-        print '%s: %d' % (zone._zone, courier)
+        print '%s<%s>: %d' % (zone._zone, zone._center, courier)
         start += courier
         # orders += zone.get_order_num()
         print 'Total orders: %d' % zone.get_order_num()
@@ -36,12 +36,15 @@ if __name__ == '__main__':
     __info('initial_zones', 'begin')
     couriers = [Courier('D%04d'%i) for i in xrange(1, TOTAL + 1)]
     # TODO: change to site object
-    zones = [Zone(conn, 'A%03d'%i) for i in xrange(1, TOTAL_ZONE + 1)]
+    cu = conn.cursor()
+    cu.execute("select lng, lat from site order by site_id")
+    zone_loc = cu.fetchall()
+    zones = [Zone(conn, 'A%03d'%i, zone_loc[i-1]) for i in xrange(1, TOTAL_ZONE + 1)]
     initial_courier_pool(zones, couriers)
     __info('initial_zones', 'done')
 
     __info('plan', 'begin')
-    plan(zones)
+    # plan(zones)
     __info('plan', 'done')
 
     __info('result', 'begin')

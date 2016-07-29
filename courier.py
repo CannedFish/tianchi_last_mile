@@ -18,6 +18,7 @@ class Courier(object):
         # audit=>(c_id, addr_id, a_time, d_time, num, o_id)
         # Use action as the expression of the couriers's state
         self._actions = []
+        self._free_time = [0, 840]
 
     def __eq__(self, other):
         return self._id == other._id
@@ -29,9 +30,12 @@ class Courier(object):
         """
         A seriel of eb_orders
         """
-        map(lambda x: x.assgin(), action._orders)
+        for order in action._orders:
+            order.assgin()
         self._actions.append(action)
         self._actions.sort()
+        self._free_time.extend([action._s_time, action._e_time])
+        self._free_time.sort()
 
     def extend_o2o_action(self, o2o_action, orders):
         """
@@ -44,6 +48,20 @@ class Courier(object):
         Return the location based on time
         """
         pass
+
+    def free_time(self):
+        """
+        return the interval of free time
+        """
+        return map(lambda x,y: (x,y), self._free_time[:-1:2], self._free_time[1::2])
+
+    def two_actions(self, end, start):
+        """
+        end: end time of first action
+        start: start time of second action
+        return two actions
+        """
+        return (None, None)
 
     # def pickup_order(self, order):
         # # add an order && modify assgin property of this order
@@ -64,10 +82,12 @@ class Courier(object):
         if time < 0: # or time > 840
             return False
 
-        for action in self._actions:
-            if time >= action._s_time and time <= action._e_time:
-                return False
-        return True
+        for f_time in self.free_time():
+            if f_time[0] == f_time[1]:
+                continue
+            if time >= f_time[0] and time <= f_time[1]:
+                return True
+        return False
 
     # def _best_path(self, remain_orders):
         # pass

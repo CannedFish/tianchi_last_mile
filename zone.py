@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from courier import TOTAL, Courier, CourierPool, Action
+import math
+import utils
+from courier import TOTAL, Courier, CourierPool
 from orders import EBOrder, O2OOrder, Orders, TOTAL_ORDER
 
 TOTAL_ZONE = 124
 
 class Zone(object):
-    def __init__(self, conn, zone):
+    def __init__(self, conn, zone, center):
         self._conn = conn
         self._zone = zone
+        self._center = center
         self._eb_orders = self._initial_eb_orders()
         self._o2o_orders_start = self._initial_o2o_orders_start()
         self._o2o_orders_end = self._initial_o2o_orders_end()
@@ -18,7 +21,7 @@ class Zone(object):
     def _initial_eb_orders(self):
         cu = self._conn.cursor()
         orders = [EBOrder(order) for order in cu.execute(\
-                    "select t1.*, t2.lng, t2.lat \
+                    "select order_id, t1.spot_id, t1.num, t2.lng, t2.lat \
                     from eb_order as t1 \
                     join spot as t2 on t1.spot_id==t2.spot_id \
                     where site_id=='%s' \
@@ -37,7 +40,7 @@ class Zone(object):
                     from o2o_order as t1 \
                     join shop as t2 on t1.shop_id==t2.shop_id \
                     join spot as t3 on t1.spot_id==t3.spot_id \
-                    where zone=='%s' \
+                    where t2.zone=='%s' \
                     order by pickup_time" % self._zone)]
         return Orders(orders)
         
@@ -52,9 +55,9 @@ class Zone(object):
                     # "select t1.* from o2o_order as t1 \
                     "select t1.*, t2.lng, t2.lat, t3.lng, t3.lat \
                     from o2o_order as t1 \
-                    join spot as t2 on t1.spot_id==t2.spot_id \
+                    join shop as t2 on t1.shop_id==t2.shop_id \
                     join spot as t3 on t1.spot_id==t3.spot_id \
-                    where zone=='%s' \
+                    where t3.zone=='%s' \
                     order by delivery_time" % self._zone)]
         return Orders(orders)
     
@@ -76,7 +79,7 @@ class Zone(object):
         self._courier_pool.add(courier)
 
     @staticmethod
-    def plan_by_DP(orders, start, end):
+    def plan_by_DP(orders, start, end, limit):
         """
         orders: list of orders
         start: lng and lat of start point
@@ -95,17 +98,28 @@ class Zone(object):
                 return False
             return True
 
-        def _time_spent(order, last):
+        def _time_spent(order, last, end):
             """
             order: order object
             last: object in d
+            limit: the limit of time used
             return time spent(this order's plus last's)
             """
             # avoid loop back!!
             if _in(last['path'], order):
                 return float('inf')
             last_order = last['path'][-1]
-            return float('inf')
+            # last order to new order
+            dis1 = utils.distance(last_order.target(), order.target())
+            t_spent1 = utils.travel_time(dis) + utils.part_time(order.num())
+            # new order to end
+            dis2 = utils.distance(order.target(), end)
+            t_spent2 = utils.travel_time(dis2)
+            # last order to end
+            dis3 = utils.distance(last_order.target(), end)
+            t_spent3 = utils.travel_time(dis3)
+            # total time spent
+            return last['cost'] - t_spent3 + t_spent1 + t_spent2
 
         empty_order = EBOrder(('Empty', start, start))
         d = [{'path':[empty_order], 'cost': float('inf')} \
@@ -120,7 +134,7 @@ class Zone(object):
             # calc d[p_num] = min{d[a] + t(order)}
             # a < p_num, order belongs to tmp
             next_order = min(map(lambda x: \
-                    (_time_spent(x, d[p_num-x.num()]), x), \
+                    (_time_spent(x, d[p_num-x.num()], end), x), \
                     tmp), key=lambda x: x[0])
             d[p_num] = {
                 'path': d[p_num-next_order[1].num()]['path'].append(next_order),
@@ -128,7 +142,7 @@ class Zone(object):
             }
         # return orders[1:] to exclude the empty order
         for plan in d[::-1]:
-            if plan['cost'] != float('inf'):
+            if plan['cost'] != float('inf') and plan['cost'] <= limit:
                 return plan['path'][1:]
         return []
 
@@ -147,9 +161,15 @@ class Zone(object):
             if not courier:
                 print "%s has no courier free" % self._zone
                 break
-            planned_orders = Zone.plan_by_DP(orders)
-            # TODO: generate an eb order action based on dp
-            courier.assgin()
+            for start, end in courier.free_time():
+                if start == end:
+                    continue
+                action_before, action_next = courier.two_actions(start, end)
+                s_point = self._center if not action_before else action_before._e_point
+                e_point = self._center if not action_next else action_next._s_point
+                planned_orders = Zone.plan_by_DP(orders, s_point, e_point, end-start)
+                # generate an eb order action based on dp
+                courier.assgin(Action(s_point, e_point, start, end, planned_orders))
 
     def __str__(self):
         return "eb_orders: %d\n%s\no2o_orders: %d\n%s\n" \

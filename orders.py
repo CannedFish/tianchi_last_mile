@@ -41,7 +41,9 @@ class EBOrder(Order):
         self._package_num = order[2]
         self._target = (order[3], order[4])
 
-    # TODO: some methods
+    def __str__(self):
+        return "<\nID: %s\nSpot: %s\nPackage: %s\n>" \
+                % (self._id, self._target, self._package_num)
 
 class O2OOrder(Order):
     def __init__(self, order):
@@ -55,7 +57,10 @@ class O2OOrder(Order):
         self._shop_addr = order[7]
         self._target = order[8]
 
-    # TODO: some methods
+    def __str__(self):
+        return "<\nID: %s\nShop: %s\nSpot: %s\nPackage: %s\n>" \
+                % (self._id, self._shop_addr, self._target, self._package_num)
+
     def shop(self):
         return self._shop_addr()
 
@@ -65,6 +70,9 @@ class Orders(object):
 
     def __len__(self):
         return len(self._orders)
+
+    def __str__(self):
+        return "\n".join([str(order) for order in self._orders])
 
     def assgined(self):
         return filter(lambda x: x.isAssgined(), self._orders)

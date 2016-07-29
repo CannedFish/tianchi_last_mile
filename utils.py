@@ -8,6 +8,11 @@ T = math.pi / 180
 
 # point=>(lng, lat)
 def distance(p1, p2):
+    """
+    p1: source point's (lng, lat)
+    p2: target point's (lng, lat)
+    return distance between these two points
+    """
     d_lng = (p1[0] - p2[0]) / 2
     d_lat = (p1[1] - p2[1]) / 2
     return 2 * R * math.asin(math.sqrt((math.sin(T*d_lat))**2 \
