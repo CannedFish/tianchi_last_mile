@@ -61,7 +61,17 @@ class Courier(object):
         start: start time of second action
         return two actions
         """
-        return (None, None)
+        candidate = filter(lambda x: x._e_time==end or x._s_time==start, self._actions)
+        if len(candidate) == 2:
+            candidate.sort()
+            return (candidate[0], candidate[1])
+        elif len(candidate) == 1:
+            if candidate[0]._e_time == end:
+                return (candidate[0], None)
+            else:
+                return (None, candidate[0])
+        else:
+            return (None, None)
 
     # def pickup_order(self, order):
         # # add an order && modify assgin property of this order
@@ -77,8 +87,8 @@ class Courier(object):
         """
         time is not in _busy
         """
-        if time == 0:
-            return True
+        # if time == 0:
+            # return True
         if time < 0: # or time > 840
             return False
 

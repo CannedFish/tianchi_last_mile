@@ -3,7 +3,7 @@
 
 import math
 import utils
-from courier import TOTAL, Courier, CourierPool
+from courier import TOTAL, Courier, CourierPool, Action
 from orders import EBOrder, O2OOrder, Orders, TOTAL_ORDER
 
 TOTAL_ZONE = 124
@@ -16,7 +16,6 @@ class Zone(object):
         self._eb_orders = self._initial_eb_orders()
         self._o2o_orders_start = self._initial_o2o_orders_start()
         self._o2o_orders_end = self._initial_o2o_orders_end()
-        self._courier_pool = []
 
     def _initial_eb_orders(self):
         cu = self._conn.cursor()
@@ -84,6 +83,7 @@ class Zone(object):
         orders: list of orders
         start: lng and lat of start point
         end: lng and lat of end point
+        limit: the limit of time used
         return ordered orders
         """
         def _in(l, e):
@@ -102,7 +102,6 @@ class Zone(object):
             """
             order: order object
             last: object in d
-            limit: the limit of time used
             return time spent(this order's plus last's)
             """
             # avoid loop back!!
@@ -111,7 +110,7 @@ class Zone(object):
             last_order = last['path'][-1]
             # last order to new order
             dis1 = utils.distance(last_order.target(), order.target())
-            t_spent1 = utils.travel_time(dis) + utils.part_time(order.num())
+            t_spent1 = utils.travel_time(dis1) + utils.part_time(order.num())
             # new order to end
             dis2 = utils.distance(order.target(), end)
             t_spent2 = utils.travel_time(dis2)
@@ -121,7 +120,7 @@ class Zone(object):
             # total time spent
             return last['cost'] - t_spent3 + t_spent1 + t_spent2
 
-        empty_order = EBOrder(('Empty', start, start))
+        empty_order = EBOrder(('Empty', 'fake_spot', 0, start[0], start[1]))
         d = [{'path':[empty_order], 'cost': float('inf')} \
                 for i in xrange(141)] # initialize the state
         d[0]['cost'] = 0
@@ -136,14 +135,14 @@ class Zone(object):
             next_order = min(map(lambda x: \
                     (_time_spent(x, d[p_num-x.num()], end), x), \
                     tmp), key=lambda x: x[0])
-            d[p_num] = {
-                'path': d[p_num-next_order[1].num()]['path'].append(next_order),
-                'cost': next_order[0]
-            }
+            d[p_num]['cost'] = next_order[0]
+            d[p_num]['path'] = [o for o in d[p_num-next_order[1].num()]['path']]
+            d[p_num]['path'].append(next_order[1])
+            print 'd[%d]: %s' % (p_num, d[p_num])
         # return orders[1:] to exclude the empty order
         for plan in d[::-1]:
             if plan['cost'] != float('inf') and plan['cost'] <= limit:
-                return plan['path'][1:]
+                return plan['path'][1:], plan['cost']
         return []
 
     def do_plan(self):
@@ -162,14 +161,19 @@ class Zone(object):
                 print "%s has no courier free" % self._zone
                 break
             for start, end in courier.free_time():
+                print "Round: %d--%d" % (start, end)
                 if start == end:
+                    if start == 840:
+                        break
                     continue
                 action_before, action_next = courier.two_actions(start, end)
                 s_point = self._center if not action_before else action_before._e_point
                 e_point = self._center if not action_next else action_next._s_point
-                planned_orders = Zone.plan_by_DP(orders, s_point, e_point, end-start)
+                planned_orders, real_cost = Zone.plan_by_DP(orders, s_point, e_point, end-start)
+                print 'planned: %s, cost, %d' % (planned_orders, real_cost)
+                # TODO: calc real time used
                 # generate an eb order action based on dp
-                courier.assgin(Action(s_point, e_point, start, end, planned_orders))
+                courier.assgin(Action(s_point, e_point, start, start + real_cost, planned_orders))
 
     def __str__(self):
         return "eb_orders: %d\n%s\no2o_orders: %d\n%s\n" \
@@ -180,6 +184,9 @@ if __name__ == '__main__':
     import sqlite3, sys
 
     conn = sqlite3.connect('./Data/data.db')
-    zone1 = Zone(conn, 'A001')
+    zone1 = Zone(conn, 'A001', (121.486181, 31.270203))
+    couriers = [Courier('D%04d'%i) for i in xrange(1, TOTAL + 1)]
+    zone1.initial_courier_pool(couriers, 0)
     print zone1
+    zone1.do_plan()
     conn.close()
