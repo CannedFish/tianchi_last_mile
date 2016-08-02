@@ -12,6 +12,13 @@ class Action(object):
     def __lt__(self, other):
         return self._e_time <= other._s_time
 
+    def __str__(self):
+        return "%s, %s, %s, %s, %d" % (self._s_point, self._e_point, \
+                self._s_time, self._e_time, len(self._orders))
+
+    def package(self):
+        return reduce(lambda x,y: x+y, [o.num() for o in self._orders])
+
 class Courier(object):
     def __init__(self, c_id):
         self._id = c_id
@@ -30,8 +37,10 @@ class Courier(object):
         """
         A seriel of eb_orders
         """
+        print "courier.assgin: %s, %d" % (action, action.package())
         for order in action._orders:
             order.assgin()
+            # print order.num()
         self._actions.append(action)
         self._actions.sort()
         self._free_time.extend([action._s_time, action._e_time])
@@ -53,7 +62,8 @@ class Courier(object):
         """
         return the interval of free time
         """
-        return map(lambda x,y: (x,y), self._free_time[:-1:2], self._free_time[1::2])
+        return filter(lambda x: x[0]!=x[1], \
+                map(lambda x,y: (x,y), self._free_time[:-1:2], self._free_time[1::2]))
 
     def two_actions(self, end, start):
         """
@@ -87,15 +97,13 @@ class Courier(object):
         """
         time is not in _busy
         """
-        # if time == 0:
-            # return True
         if time < 0: # or time > 840
             return False
 
-        for f_time in self.free_time():
-            if f_time[0] == f_time[1]:
-                continue
-            if time >= f_time[0] and time <= f_time[1]:
+        for start, end in self.free_time():
+            if time == 0: 
+                return True
+            if time >= start and time <= end:
                 return True
         return False
 

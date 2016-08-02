@@ -138,7 +138,7 @@ class Zone(object):
             d[p_num]['cost'] = next_order[0]
             d[p_num]['path'] = [o for o in d[p_num-next_order[1].num()]['path']]
             d[p_num]['path'].append(next_order[1])
-            print 'd[%d]: %s' % (p_num, d[p_num])
+            # print 'd[%d]: %s' % (p_num, d[p_num])
         # return orders[1:] to exclude the empty order
         for plan in d[::-1]:
             if plan['cost'] != float('inf') and plan['cost'] <= limit:
@@ -155,6 +155,7 @@ class Zone(object):
         while True:
             orders = self._eb_orders.remain()
             if len(orders) == 0:
+                print "All assgined"
                 break
             courier = self._courier_pool.get()
             if not courier:
@@ -162,10 +163,6 @@ class Zone(object):
                 break
             for start, end in courier.free_time():
                 print "Round: %d--%d" % (start, end)
-                if start == end:
-                    if start == 840:
-                        break
-                    continue
                 action_before, action_next = courier.two_actions(start, end)
                 s_point = self._center if not action_before else action_before._e_point
                 e_point = self._center if not action_next else action_next._s_point
