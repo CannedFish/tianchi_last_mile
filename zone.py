@@ -143,7 +143,7 @@ class Zone(object):
         for plan in d[::-1]:
             if plan['cost'] != float('inf') and plan['cost'] <= limit:
                 return plan['path'][1:], plan['cost']
-        return []
+        return [], float('inf')
 
     def do_plan(self):
         """
@@ -162,13 +162,14 @@ class Zone(object):
                 print "%s has no courier free" % self._zone
                 break
             for start, end in courier.free_time():
-                print "Round: %d--%d" % (start, end)
+                # print "Round: %d--%d" % (start, end)
                 action_before, action_next = courier.two_actions(start, end)
                 s_point = self._center if not action_before else action_before._e_point
                 e_point = self._center if not action_next else action_next._s_point
                 planned_orders, real_cost = Zone.plan_by_DP(orders, s_point, e_point, end-start)
-                print 'planned: %s, cost, %d' % (planned_orders, real_cost)
-                # TODO: calc real time used
+                if len(planned_orders) == 0:
+                    continue
+                # print 'planned: %s, cost: %d' % (planned_orders, real_cost)
                 # generate an eb order action based on dp
                 courier.assgin(Action(s_point, e_point, start, start + real_cost, planned_orders))
 

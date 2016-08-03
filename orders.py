@@ -58,8 +58,9 @@ class O2OOrder(Order):
         self._target = order[8]
 
     def __str__(self):
-        return "<\nID: %s\nShop: %s\nSpot: %s\nPackage: %s\n>" \
-                % (self._id, self._shop_addr, self._target, self._package_num)
+        return "<\nID: %s\nShop: %s\nSpot: %s\nPickup: %s\nDelivery: %s\nPackage: %s\n>" \
+                % (self._id, self._shop_addr, self._target, \
+                self._pickup_time, self._delivery_time, self._package_num)
 
     def shop(self):
         return self._shop_addr()

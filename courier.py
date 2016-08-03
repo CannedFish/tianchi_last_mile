@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import random
+
 class Action(object):
     def __init__(self, s_point, e_point, s_time, e_time, orders):
         self._s_point = s_point
@@ -61,8 +63,9 @@ class Courier(object):
     def free_time(self):
         """
         return the interval of free time
+        More than 10 minutes are treated as free
         """
-        return filter(lambda x: x[0]!=x[1], \
+        return filter(lambda x: x[1]-x[0]>=10, \
                 map(lambda x,y: (x,y), self._free_time[:-1:2], self._free_time[1::2]))
 
     def two_actions(self, end, start):
@@ -83,16 +86,6 @@ class Courier(object):
         else:
             return (None, None)
 
-    # def pickup_order(self, order):
-        # # add an order && modify assgin property of this order
-        # map(lambda x: x.assgin(), order)
-        # self._orders.append(order)
-        # # TODO: calc time used and modify stay position
-
-    # def delivery_order(self, start, end):
-        # # remove an order && recode the time used
-        # pass
-
     def isFree(self, time=0):
         """
         time is not in _busy
@@ -107,28 +100,26 @@ class Courier(object):
                 return True
         return False
 
-    # def _best_path(self, remain_orders):
-        # pass
-
-    # def next(self):
-        # """
-        # return next order to delivery
-        # """
-        # pass
-
 class CourierPool(object):
     def __init__(self, couriers):
         self._couriers = couriers
+        self._total = len(couriers)
+        self._idx = 0
 
     def get(self, time=0):
-        for courier in self._couriers:
-            if courier.isFree(time):
-                return courier
-        return False
+        i = self._idx
+        self._idx = (self._idx+1)%self._total
+        while True:
+            if self._couriers[i].isFree(time):
+                return self._couriers[i]
+            i = (i+1)%self._total
+            if i == self._idx-1:
+                return False
 
     def add(self, courier):
         if courier in self._couriers:
             return
+        self._total += 1
         return self._couriers.append(courier)
 
 TOTAL = 1000

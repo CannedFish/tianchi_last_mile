@@ -44,7 +44,7 @@ if __name__ == '__main__':
     __info('initial_zones', 'done')
 
     __info('plan', 'begin')
-    # plan(zones)
+    plan(zones)
     __info('plan', 'done')
 
     __info('result', 'begin')
