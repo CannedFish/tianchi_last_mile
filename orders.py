@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import utils
 # eb + o2o
 TOTAL_ORDER = 12487
 
@@ -34,9 +35,16 @@ class Order(object):
         """
         return self._target
 
+    def type(self):
+        return self._type
+
+    def part_time(self):
+        return utils.part_time(self.num())
+
 class EBOrder(Order):
     def __init__(self, order):
         super(EBOrder, self).__init__(order)
+        self._type = 'eb'
         self._spot = order[1]
         self._package_num = order[2]
         self._target = (order[3], order[4])
@@ -48,6 +56,7 @@ class EBOrder(Order):
 class O2OOrder(Order):
     def __init__(self, order):
         super(O2OOrder, self).__init__(order)
+        self._type = 'o2o'
         self._spot = order[1]
         self._shop = order[2]
         self._pickup_time = order[3]
@@ -63,7 +72,18 @@ class O2OOrder(Order):
                 self._pickup_time, self._delivery_time, self._package_num)
 
     def shop(self):
-        return self._shop_addr()
+        return self._shop_addr
+
+class PickupOrder(Order):
+    def __init__(self, order):
+        super(PickupOrder, self).__init__(order)
+        self._type = 'pickup'
+        self._target = order[1]
+        self._target_type = order[2] # site | shop
+        self._package_num = 0
+
+    def __str__(self):
+        return "<PickupOrder>Target:%s,TargetType:%s." % (self._target, self._target_type)
 
 class Orders(object):
     def __init__(self, orders):

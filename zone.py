@@ -4,7 +4,7 @@
 import math
 import utils
 from courier import TOTAL, Courier, CourierPool, Action
-from orders import EBOrder, O2OOrder, Orders, TOTAL_ORDER
+from orders import EBOrder, O2OOrder, PickupOrder, Orders, TOTAL_ORDER
 
 TOTAL_ZONE = 124
 
@@ -77,13 +77,24 @@ class Zone(object):
     def add_courier(self, courier):
         self._courier_pool.add(courier)
 
+    def is_center(self, point):
+        """
+        point: (lng, lat) for a point
+        return True or False
+        """
+        return self._center==point
+
     @staticmethod
-    def plan_by_DP(orders, start, end, limit):
+    def plan_by_DP(orders, site, start, end, limit, start_with_site, end_with_site, pack=0):
         """
         orders: list of orders
+        site: lng and lat of site
         start: lng and lat of start point
         end: lng and lat of end point
         limit: the limit of time used
+        start_with_site: True or False for starting from site or not
+        end_with_site: True or False for stopping at site or not
+        pack: the number of packages already have
         return ordered orders
         """
         def _in(l, e):
@@ -110,7 +121,7 @@ class Zone(object):
             last_order = last['path'][-1]
             # last order to new order
             dis1 = utils.distance(last_order.target(), order.target())
-            t_spent1 = utils.travel_time(dis1) + utils.part_time(order.num())
+            t_spent1 = utils.travel_time(dis1) + order.part_time()
             # new order to end
             dis2 = utils.distance(order.target(), end)
             t_spent2 = utils.travel_time(dis2)
@@ -121,14 +132,18 @@ class Zone(object):
             return last['cost'] - t_spent3 + t_spent1 + t_spent2
 
         empty_order = EBOrder(('Empty', 'fake_spot', 0, start[0], start[1]))
+        site_pickup_order = PickupOrder(('Center', site, 'site'))
         d = [{'path':[empty_order], 'cost': float('inf')} \
-                for i in xrange(141)] # initialize the state
-        d[0]['cost'] = 0
-        locate = start
-        for i in xrange(140):
+                for i in xrange(141-pack)] if start_with_site \
+                else [{'path':[empty_order, site_pickup_order], \
+                'cost': float('inf')} for i in xrange(141-pack)]
+        d[0]['cost'] = 0 if start_with_site else \
+                utils.travel_time(utils.distance(start, site))
+        # locate = start
+        for i in xrange(140-pack):
             p_num = i + 1
             tmp = filter(lambda x: x.num() <= p_num, orders)
-            if len(tmp) == 0: # and cannot be aggregated by small orders
+            if len(tmp) == 0:
                 continue
             # calc d[p_num] = min{d[a] + t(order)}
             # a < p_num, order belongs to tmp
@@ -142,15 +157,53 @@ class Zone(object):
         # return orders[1:] to exclude the empty order
         for plan in d[::-1]:
             if plan['cost'] != float('inf') and plan['cost'] <= limit:
+                end_type = 'site' if end_with_site else 'shop'
+                plan['path'].append(PickupOrder(('fake_order', end, end_type)))
                 return plan['path'][1:], plan['cost']
         return [], float('inf')
+
+    @staticmethod
+    def plan_by_TSP(orders, start):
+        """
+        orders: orders to be plan
+        start: (lng, lat) for start point
+        return (plan, end_point, cost_interval)
+        """
+        def cost(p, k):
+            return utils.travel_time(utils.distance(p[0], k[0])) \
+                    + utils.part_time(k[1])
+
+        # TODO: how to get the path
+        def TSP(p, V):
+            """
+            p: ((lng, lat), num) of start point
+            V: collect of point to be chosen
+            """
+            if len(V)==0:
+                return 0
+            return min([cost(p, v) + TSP(v, V.remove(v)) for v in V])
+
+        return [], start, (0, 0)
 
     def do_plan(self):
         """
         Execute the delivery plan
         """
         print "planning %s..." % self._zone
-        # TODO: o2o_orders' plan, new a o2o action, and extend it with eb orders
+        # o2o_orders' plan, new a o2o action, and extend it with eb orders
+        o2os = self._o2o_orders_start.remain()
+        pickup_time = list(set([(o.shop(), o._pickup_time) for o in o2os]))
+        pickup_time.sort(key=lambda x: x[1])
+        for t in pickup_time:
+            o2o = filter(lambda x: (x.shop(), x._pickup_time)==t, o2os)
+            if len(o2o) > 1:
+                plan, end, cost = Zone.plan_by_TSP(o2o, o2o[0].shop())
+            else:
+                plan = o2o
+                end = o2o[0].target()
+                cost = utils.travel_time(utils.distance(o2o[0].shop(), \
+                        o2o[0].target())) + o2o[0].part_time()
+            # TODO: find the nearest site
         # es_orders' plan
         while True:
             orders = self._eb_orders.remain()
@@ -166,7 +219,8 @@ class Zone(object):
                 action_before, action_next = courier.two_actions(start, end)
                 s_point = self._center if not action_before else action_before._e_point
                 e_point = self._center if not action_next else action_next._s_point
-                planned_orders, real_cost = Zone.plan_by_DP(orders, s_point, e_point, end-start)
+                planned_orders, real_cost = Zone.plan_by_DP(orders, self._center, s_point, \
+                        e_point, end-start, self.is_center(s_point), self.is_center(e_point))
                 if len(planned_orders) == 0:
                     continue
                 # print 'planned: %s, cost: %d' % (planned_orders, real_cost)

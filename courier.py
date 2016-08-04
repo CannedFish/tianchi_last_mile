@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import random
-
 class Action(object):
     def __init__(self, s_point, e_point, s_time, e_time, orders):
         self._s_point = s_point
@@ -107,6 +105,9 @@ class CourierPool(object):
         self._idx = 0
 
     def get(self, time=0):
+        """
+        Every time start from next courier
+        """
         i = self._idx
         self._idx = (self._idx+1)%self._total
         while True:
