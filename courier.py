@@ -46,11 +46,11 @@ class Courier(object):
         self._free_time.extend([action._s_time, action._e_time])
         self._free_time.sort()
 
-    def extend_o2o_action(self, o2o_action, orders):
-        """
-        Try extend an o2o order action with eb orders
-        """
-        pass
+    # def extend_o2o_action(self, o2o_action, orders):
+        # """
+        # Try extend an o2o order action with eb orders
+        # """
+        # pass
 
     def location(self, time=0):
         """
@@ -84,7 +84,10 @@ class Courier(object):
         else:
             return (None, None)
 
-    def isFree(self, time=0):
+    def first_action(self):
+        return self._actions[0] if len(self._actions)!=0 else None
+
+    def isFree(self, s_time=0, e_time=0):
         """
         time is not in _busy
         """
@@ -92,9 +95,9 @@ class Courier(object):
             return False
 
         for start, end in self.free_time():
-            if time == 0: 
+            if s_time == 0 and e_time == 0: 
                 return True
-            if time >= start and time <= end:
+            if s_time >= start and e_time <= end:
                 return True
         return False
 

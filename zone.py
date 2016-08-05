@@ -163,47 +163,96 @@ class Zone(object):
         return [], float('inf')
 
     @staticmethod
-    def plan_by_TSP(orders, start):
+    def plan_by_TSP(orders, start, s_time):
         """
         orders: orders to be plan
         start: (lng, lat) for start point
-        return (plan, end_point, cost_interval)
+        destination for picking up orders
+        return (plan, end_point, min_cost)
         """
         def cost(p, k):
-            return utils.travel_time(utils.distance(p[0], k[0])) \
-                    + utils.part_time(k[1])
+            """
+            p: source o2o order
+            k: target o2o order
+            """
+            return utils.travel_time(utils.distance(p.target(), k.target())) \
+                    + utils.part_time(k.num())
 
         # TODO: how to get the path
         def TSP(p, V):
             """
-            p: ((lng, lat), num) of start point
-            V: collect of point to be chosen
+            p: the fake o2o order of starting point
+            V: the collection of o2o orders to be chosen
+            return the min cost and path
             """
             if len(V)==0:
-                return 0
-            return min([cost(p, v) + TSP(v, V.remove(v)) for v in V])
+                return 0, []
+            c_min = float('inf')
+            path = None
+            for v in V:
+                next_c, path_n = TSP(v, filter(lambda x: x!=v, V))
+                c = cost(p, v) + next_c
+                if c < c_min:
+                    c_min = c
+                    path_n.append(v)
+                    path = path_n
+            return c_min, path
 
-        return [], start, (0, 0)
+        start_order = O2OOrder(('Fake_O', 'Spot_id', 'Shop_id', s_time, \
+                s_time, 0, 0, start, start))
+        cost, path = TSP(start_order, orders)
+
+        return path[len(path)-1::-1], path[0].target(), cost
 
     def do_plan(self):
         """
         Execute the delivery plan
         """
         print "planning %s..." % self._zone
+
         # o2o_orders' plan, new a o2o action, and extend it with eb orders
         o2os = self._o2o_orders_start.remain()
         pickup_time = list(set([(o.shop(), o._pickup_time) for o in o2os]))
-        pickup_time.sort(key=lambda x: x[1])
+        pickup_time.sort(key=lambda x: x[1], reverse=True)
+        pickup_order = PickupOrder(('Pickup', self._center, 'site'))
         for t in pickup_time:
             o2o = filter(lambda x: (x.shop(), x._pickup_time)==t, o2os)
             if len(o2o) > 1:
-                plan, end, cost = Zone.plan_by_TSP(o2o, o2o[0].shop())
+                plan, end, cost = Zone.plan_by_TSP(o2o, t[0], t[1])
             else:
                 plan = o2o
                 end = o2o[0].target()
                 cost = utils.travel_time(utils.distance(o2o[0].shop(), \
                         o2o[0].target())) + o2o[0].part_time()
-            # TODO: find the nearest site
+            print plan, end, (t[0], t[0]+cost), utils.travel_time(\
+                    utils.distance(end, self._center))
+            # find the next location, site or shop
+            bad_courier = []
+            while True:
+                courier = self._courier_pool.get(t[0], t[0]+cost)
+                if not courier or courier in bad_courier:
+                    print "No courier can match up"
+                    break
+                n_action = courier.first_action()
+                end2n_shop = utils.travel_time(utils.distance(end, n_action._s_point))
+                if t[1]+cost+end2n_shop > n_action._s_time:
+                    bad_courier.append(courier)
+                    continue
+                end2site = utils.travel_time(utils.distance(end, self._center))
+                site2n_shop = utils.travel_time(utils.distance(self._center, n_action._s_point))
+                # if end->site->shop <= t(n_shop)-t(end) then shop else site
+                if t[1]+cost+end2site+site2n_shop <= n_action._s_time:
+                    plan.append(pickup_order)
+                    e_point = self._center
+                    e_time = t[1]+cost+end2site
+                else:
+                    shop_pickup_order = PickupOrder('Pickup', n_action._s_point, 'shop')
+                    plan.append(shop_pickup_order)
+                    e_point = n_action._s_point
+                    e_time = t[1]+cost+end2n_shop
+                courier.assgin(Action(t[0], e_point, t[1], e_time, plan))
+                break
+
         # es_orders' plan
         while True:
             orders = self._eb_orders.remain()
