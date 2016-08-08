@@ -224,16 +224,26 @@ class Zone(object):
                 end = o2o[0].target()
                 cost = utils.travel_time(utils.distance(o2o[0].shop(), \
                         o2o[0].target())) + o2o[0].part_time()
-            print plan, end, (t[0], t[0]+cost), utils.travel_time(\
-                    utils.distance(end, self._center))
+            # print plan, end, (t[1], t[1]+cost), utils.travel_time(\
+                    # utils.distance(end, self._center))
             # find the next location, site or shop
             bad_courier = []
             while True:
-                courier = self._courier_pool.get(t[0], t[0]+cost)
+                # import pdb
+                # pdb.set_trace()
+                courier = self._courier_pool.get(t[1], t[1]+cost)
                 if not courier or courier in bad_courier:
                     print "No courier can match up"
                     break
                 n_action = courier.first_action()
+                # the first o2o order
+                if not n_action:
+                    end2site = utils.travel_time(utils.distance(end, self._center))
+                    plan.append(pickup_order)
+                    e_time = t[1]+cost+end2site
+                    courier.assgin(Action(t[0], self._center, t[1], e_time, plan))
+                    break
+                # Not the first o2o order
                 end2n_shop = utils.travel_time(utils.distance(end, n_action._s_point))
                 if t[1]+cost+end2n_shop > n_action._s_time:
                     bad_courier.append(courier)
@@ -246,27 +256,33 @@ class Zone(object):
                     e_point = self._center
                     e_time = t[1]+cost+end2site
                 else:
-                    shop_pickup_order = PickupOrder('Pickup', n_action._s_point, 'shop')
+                    shop_pickup_order = PickupOrder(('Pickup', n_action._s_point, 'shop'))
                     plan.append(shop_pickup_order)
                     e_point = n_action._s_point
                     e_time = t[1]+cost+end2n_shop
                 courier.assgin(Action(t[0], e_point, t[1], e_time, plan))
                 break
+        print "O2O assigned"
 
         # es_orders' plan
         while True:
             orders = self._eb_orders.remain()
             if len(orders) == 0:
-                print "All assgined"
+                print "EB assgined"
                 break
             courier = self._courier_pool.get()
             if not courier:
                 print "%s has no courier free" % self._zone
                 break
-            for start, end in courier.free_time():
+            interval = courier.get_interval()
+            if interval:
+            # for start, end in courier.free_time():
+                start, end = interval
                 # print "Round: %d--%d" % (start, end)
                 action_before, action_next = courier.two_actions(start, end)
                 s_point = self._center if not action_before else action_before._e_point
+                if not self.is_center(s_point):
+                    continue
                 e_point = self._center if not action_next else action_next._s_point
                 planned_orders, real_cost = Zone.plan_by_DP(orders, self._center, s_point, \
                         e_point, end-start, self.is_center(s_point), self.is_center(e_point))
@@ -274,7 +290,10 @@ class Zone(object):
                     continue
                 # print 'planned: %s, cost: %d' % (planned_orders, real_cost)
                 # generate an eb order action based on dp
-                courier.assgin(Action(s_point, e_point, start, start + real_cost, planned_orders))
+                courier.assgin(Action(s_point, e_point, end-real_cost, end, planned_orders))
+        
+        # finished plan TODO: write to file
+        print self._courier_pool
 
     def __str__(self):
         return "eb_orders: %d\n%s\no2o_orders: %d\n%s\n" \
@@ -285,9 +304,10 @@ if __name__ == '__main__':
     import sqlite3, sys
 
     conn = sqlite3.connect('./Data/data.db')
-    zone1 = Zone(conn, 'A001', (121.486181, 31.270203))
+    # zone1 = Zone(conn, 'A001', (121.486181, 31.270203))
+    zone1 = Zone(conn, 'A004', (121.492507, 31.234015))
     couriers = [Courier('D%04d'%i) for i in xrange(1, TOTAL + 1)]
-    zone1.initial_courier_pool(couriers, 0)
-    print zone1
+    print zone1.initial_courier_pool(couriers, 0)
+    # print zone1
     zone1.do_plan()
     conn.close()

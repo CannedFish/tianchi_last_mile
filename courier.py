@@ -26,21 +26,23 @@ class Courier(object):
         # Use action as the expression of the couriers's state
         self._actions = []
         self._free_time = [0, 840]
+        self._last_interval = (0, (0, 840))
 
     def __eq__(self, other):
         return self._id == other._id
 
     def __str__(self):
-        return "<courier: %s>" % self._id
+        return "<courier: %s>\n%s" % (self._id, \
+                "\n".join([str(a) for a in self._actions]))
 
     def assgin(self, action):
         """
         A seriel of eb_orders
         """
-        print "courier.assgin: %s, %d" % (action, action.package())
+        print "<%s>courier.assgin: %s, %d" % (self._id, action, action.package())
         for order in action._orders:
             order.assgin()
-            # print order.num()
+            # print order._type
         self._actions.append(action)
         self._actions.sort()
         self._free_time.extend([action._s_time, action._e_time])
@@ -63,8 +65,26 @@ class Courier(object):
         return the interval of free time
         More than 10 minutes are treated as free
         """
-        return filter(lambda x: x[1]-x[0]>=10, \
+        return filter(lambda x: x[1]!=x[0], \
                 map(lambda x,y: (x,y), self._free_time[:-1:2], self._free_time[1::2]))
+        
+    def get_interval(self):
+        """
+        return the approprate interval
+        Intervals between o2o orders are high priority from last to first
+        """
+        f_times = self.free_time()
+        if len(f_times) == 0:
+            return None
+        f_times.reverse()
+        if f_times[0][1] == 840:
+            f_times.append(f_times.pop(0))
+        # to avoid dead loop
+        idx = (self._last_interval[0]+1) % len(f_times) \
+                if f_times[self._last_interval[0]] == self._last_interval[1] \
+                else self._last_interval[0]
+        self._last_interval = (idx, f_times[idx])
+        return f_times[self._last_interval[0]] 
 
     def two_actions(self, end, start):
         """
@@ -91,7 +111,7 @@ class Courier(object):
         """
         time is not in _busy
         """
-        if time < 0: # or time > 840
+        if s_time < 0: # or e_time > 840
             return False
 
         for start, end in self.free_time():
@@ -107,17 +127,22 @@ class CourierPool(object):
         self._total = len(couriers)
         self._idx = 0
 
-    def get(self, time=0):
+    def __str__(self):
+        return "\n".join([str(c) for c in self._couriers])
+
+    def get(self, s_time=0, e_time=0):
         """
         Every time start from next courier
         """
         i = self._idx
         self._idx = (self._idx+1)%self._total
         while True:
-            if self._couriers[i].isFree(time):
+            # import pdb
+            # pdb.set_trace()
+            if self._couriers[i].isFree(s_time, e_time):
                 return self._couriers[i]
             i = (i+1)%self._total
-            if i == self._idx-1:
+            if i == (self._idx-1)%self._total:
                 return False
 
     def add(self, courier):
