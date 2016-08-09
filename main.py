@@ -17,10 +17,15 @@ def initial_courier_pool(zones, couriers):
         # orders += zone.get_order_num()
         print 'Total orders: %d' % zone.get_order_num()
     # TODO: Handle remain couriers
+    return start
 
-def plan(zones):
+def plan(zones, couriers, last):
     for zone in zones:
-        zone.do_plan()
+        while True:
+            if zone.do_plan() == 0:
+                break
+            zone.add_courier(couriers[last])
+            last += 1
 
 def result(couriers):
     """
@@ -40,11 +45,11 @@ if __name__ == '__main__':
     cu.execute("select lng, lat from site order by site_id")
     zone_loc = cu.fetchall()
     zones = [Zone(conn, 'A%03d'%i, zone_loc[i-1]) for i in xrange(1, TOTAL_ZONE + 1)]
-    initial_courier_pool(zones, couriers)
+    last = initial_courier_pool(zones, couriers)
     __info('initial_zones', 'done')
 
     __info('plan', 'begin')
-    plan(zones)
+    plan(zones, couriers, last)
     __info('plan', 'done')
 
     __info('result', 'begin')

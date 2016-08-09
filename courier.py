@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import utils
+
 class Action(object):
     def __init__(self, s_point, e_point, s_time, e_time, orders):
         self._s_point = s_point
@@ -8,6 +10,7 @@ class Action(object):
         self._s_time = s_time
         self._e_time = e_time
         self._orders = orders
+        self._calc_travel_time()
 
     def __lt__(self, other):
         return self._e_time <= other._s_time
@@ -15,9 +18,34 @@ class Action(object):
     def __str__(self):
         return "%s, %s, %s, %s, %d" % (self._s_point, self._e_point, \
                 self._s_time, self._e_time, len(self._orders))
+    
+    def __repr__(self):
+        arr = self._courier.recent_arrival()
+        fmt = "%s,%s,%s,%s,%d,%s"
+        s_point = self.start_point()
+        s1 = [fmt % (self._courier._id, s_point, arr, self._s_time, o.num(), o._id) \
+                for o in self._orders[:-1]]
+        # TODO: calc a ERROR!!
+        s2 = map(lambda o,a: fmt % \
+                (self._courier._id, o._spot_id, a, a+o.part_time(), -o.num(), o._id), \
+                self._orders[:-1], self._t_time)
+        s1.extend(s2)
+        return "\n".join(s1)
+
+    def _calc_travel_time(self):
+        self._t_time = map(lambda x,y: utils.travel_time_p(x.target(), y.target()),\
+                self._orders[:-2], self._orders[1:-1])
+        self._t_time.insert(0, utils.travel_time_p(self._orders[0].src_addr(),\
+                self._orders[0].target()))
 
     def package(self):
         return reduce(lambda x,y: x+y, [o.num() for o in self._orders])
+
+    def set_courier(self, courier):
+        self._courier = courier
+
+    def start_point(self):
+        return self._orders[0].src_id()
 
 class Courier(object):
     def __init__(self, c_id):
@@ -35,14 +63,23 @@ class Courier(object):
         return "<courier: %s>\n%s" % (self._id, \
                 "\n".join([str(a) for a in self._actions]))
 
+    def __repr__(self):
+        self._arrival = 0
+        path = ""
+        for action in self._actions:
+            path += "%r\n" % action
+            self._arrival = action._e_time
+        return path
+
     def assgin(self, action):
         """
         A seriel of eb_orders
         """
-        print "<%s>courier.assgin: %s, %d" % (self._id, action, action.package())
+        # print "<%s>courier.assgin: %s, %d" % (self._id, action, action.package())
         for order in action._orders:
             order.assgin()
             # print order._type
+        action.set_courier(self)
         self._actions.append(action)
         self._actions.sort()
         self._free_time.extend([action._s_time, action._e_time])
@@ -54,11 +91,12 @@ class Courier(object):
         # """
         # pass
 
-    def location(self, time=0):
+    def recent_arrival(self):
         """
-        Return the location based on time
+        Return the recent arrival time
+        for tracing actions
         """
-        pass
+        return self._arrival
 
     def free_time(self):
         """
@@ -130,6 +168,9 @@ class CourierPool(object):
     def __str__(self):
         return "\n".join([str(c) for c in self._couriers])
 
+    def __repr__(self):
+        return "\n".join([repr(c) for c in self._couriers])
+
     def get(self, s_time=0, e_time=0):
         """
         Every time start from next courier
@@ -137,8 +178,6 @@ class CourierPool(object):
         i = self._idx
         self._idx = (self._idx+1)%self._total
         while True:
-            # import pdb
-            # pdb.set_trace()
             if self._couriers[i].isFree(s_time, e_time):
                 return self._couriers[i]
             i = (i+1)%self._total
@@ -150,6 +189,9 @@ class CourierPool(object):
             return
         self._total += 1
         return self._couriers.append(courier)
+
+    def size(self):
+        return self._total
 
 TOTAL = 1000
 # TOTAL_COURIERS = [Courier('D%04d'%i) for i in xrange(TOTAL)]

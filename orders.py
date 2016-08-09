@@ -42,10 +42,12 @@ class Order(object):
         return utils.part_time(self.num())
 
 class EBOrder(Order):
-    def __init__(self, order):
+    def __init__(self, order, site):
         super(EBOrder, self).__init__(order)
         self._type = 'eb'
-        self._spot = order[1]
+        self._site_id = site[0]
+        self._site_addr = site[1]
+        self._spot_id = order[1]
         self._package_num = order[2]
         self._target = (order[3], order[4])
 
@@ -53,12 +55,18 @@ class EBOrder(Order):
         return "<\nID: %s\nSpot: %s\nPackage: %s\n>" \
                 % (self._id, self._target, self._package_num)
 
+    def src_id(self):
+        return self._site_id
+
+    def src_addr(self):
+        return self._site_addr
+
 class O2OOrder(Order):
     def __init__(self, order):
         super(O2OOrder, self).__init__(order)
         self._type = 'o2o'
-        self._spot = order[1]
-        self._shop = order[2]
+        self._spot_id = order[1]
+        self._shop_id = order[2]
         self._pickup_time = order[3]
         self._delivery_time = order[4]
         self._package_num = order[5]
@@ -70,6 +78,12 @@ class O2OOrder(Order):
         return "<\nID: %s\nShop: %s\nSpot: %s\nPickup: %s\nDelivery: %s\nPackage: %s\n>" \
                 % (self._id, self._shop_addr, self._target, \
                 self._pickup_time, self._delivery_time, self._package_num)
+
+    def src_id(self):
+        return self._shop_id
+
+    def src_addr(self):
+        return self._shop_addr
 
     def shop(self):
         return self._shop_addr

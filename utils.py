@@ -37,6 +37,9 @@ V = 15 * 1000 / 60 # meters per minutes
 def travel_time(dis):
     return int(round(dis/V))
 
+def travel_time_p(p1, p2):
+    return travel_time(distance(p1, p2))
+
 # e.g. '8:30' => 30, '18:30' => 630
 def time2minutes(timestr):
     ret = re.split(':', timestr)
