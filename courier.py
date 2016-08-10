@@ -11,6 +11,7 @@ class Action(object):
         self._e_time = e_time
         self._orders = orders
         self._calc_travel_time()
+        self._calc_offset()
 
     def __lt__(self, other):
         return self._e_time <= other._s_time
@@ -25,18 +26,24 @@ class Action(object):
         s_point = self.start_point()
         s1 = [fmt % (self._courier._id, s_point, arr, self._s_time, o.num(), o._id) \
                 for o in self._orders[:-1]]
-        # TODO: calc a ERROR!!
-        s2 = map(lambda o,a: fmt % \
-                (self._courier._id, o._spot_id, a, a+o.part_time(), -o.num(), o._id), \
-                self._orders[:-1], self._t_time)
+        # TODO: if the first order is an o2o, modify it arrival time!!
+        s2 = map(lambda o,a,off: fmt % \
+                (self._courier._id, o._spot_id, off+a, off+a+o.part_time(), -o.num(), o._id), \
+                self._orders[:-1], self._t_time, self._offset)
         s1.extend(s2)
         return "\n".join(s1)
 
     def _calc_travel_time(self):
         self._t_time = map(lambda x,y: utils.travel_time_p(x.target(), y.target()),\
                 self._orders[:-2], self._orders[1:-1])
-        self._t_time.insert(0, utils.travel_time_p(self._orders[0].src_addr(),\
-                self._orders[0].target()))
+        if len(self._orders) > 1:
+            self._t_time.insert(0, utils.travel_time_p(self._orders[0].src_addr(),\
+                    self._orders[0].target()))
+    
+    def _calc_offset(self):
+        self._offset = [self._s_time] if len(self._t_time) > 0 else []
+        for tt, o in zip(self._t_time[:-1], self._orders[:-2]):
+            self._offset.append(self._offset[-1]+tt+o.part_time())
 
     def package(self):
         return reduce(lambda x,y: x+y, [o.num() for o in self._orders])
@@ -54,7 +61,7 @@ class Courier(object):
         # Use action as the expression of the couriers's state
         self._actions = []
         self._free_time = [0, 840]
-        self._last_interval = (0, (0, 840))
+        self._s_idx = 0
 
     def __eq__(self, other):
         return self._id == other._id
@@ -67,8 +74,10 @@ class Courier(object):
         self._arrival = 0
         path = ""
         for action in self._actions:
-            path += "%r\n" % action
-            self._arrival = action._e_time
+            ac = "%r" % action
+            if ac != "":
+                path += "%s\n" % ac
+                self._arrival = action._e_time
         return path
 
     def assgin(self, action):
@@ -112,17 +121,16 @@ class Courier(object):
         Intervals between o2o orders are high priority from last to first
         """
         f_times = self.free_time()
-        if len(f_times) == 0:
+        if len(f_times) == self._s_idx:
             return None
         f_times.reverse()
         if f_times[0][1] == 840:
             f_times.append(f_times.pop(0))
-        # to avoid dead loop
-        idx = (self._last_interval[0]+1) % len(f_times) \
-                if f_times[self._last_interval[0]] == self._last_interval[1] \
-                else self._last_interval[0]
-        self._last_interval = (idx, f_times[idx])
-        return f_times[self._last_interval[0]] 
+        # print f_times, self._s_idx
+        return f_times[self._s_idx]
+
+    def ins_interval_query(self):
+        self._s_idx += 1
 
     def two_actions(self, end, start):
         """

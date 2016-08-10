@@ -51,10 +51,11 @@ LAST = time2minutes('22:00')
 if __name__ == "__main__":
     print "Test distance (121.511363, 31.273124) and (121.445216,31.120448): %f" \
             % distance((121.511363, 31.273124), (121.445216,31.120448))
-    print "Test part_time 5:", part_time(5)
+    print "Test part_time 61:", part_time(61)
     print "Travel time:", travel_time(93849.3948)
     print "Time string to minutes: %d" % time2minutes('8:30')
     print "Time string to minutes: %d" % time2minutes('18:30')
     print "LAST:", LAST
+    print "Travel time point:", travel_time_p((121.48203,31.26577),(121.489265,31.26754))
 
 # vim: set sw=4 ts=4 softtabstop=4

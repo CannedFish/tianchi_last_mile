@@ -41,6 +41,12 @@ class Order(object):
     def part_time(self):
         return utils.part_time(self.num())
 
+    def src_id(self):
+        return self._id
+
+    def src_addr(self):
+        return self._target
+
 class EBOrder(Order):
     def __init__(self, order, site):
         super(EBOrder, self).__init__(order)
