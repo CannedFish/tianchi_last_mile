@@ -64,7 +64,7 @@ class Courier(object):
         # audit=>(c_id, addr_id, a_time, d_time, num, o_id)
         # Use action as the expression of the couriers's state
         self._actions = []
-        self._free_time = [0, 840]
+        self._free_time = [0, utils.LAST]
         self._s_idx = 0
 
     def __eq__(self, other):
@@ -131,7 +131,7 @@ class Courier(object):
         if len(f_times) == self._s_idx:
             return None
         f_times.reverse()
-        if f_times[0][1] == 840:
+        if f_times[0][1] == utils.LAST:
             f_times.append(f_times.pop(0))
         # print f_times, self._s_idx
         return f_times[self._s_idx]
@@ -164,8 +164,10 @@ class Courier(object):
         """
         time is not in _busy
         """
-        if s_time < 0: # or e_time > 840
+        if s_time < 0: 
             return False
+        if e_time > utils.LAST:
+            self._free_time[-1] = e_time
 
         for start, end in self.free_time():
             if s_time == 0 and e_time == 0: 

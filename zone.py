@@ -69,7 +69,7 @@ class Zone(object):
         the shop is not.
         """
         num = int(math.floor(self.get_order_num()*TOTAL/TOTAL_ORDER))
-        num = max(1, num-2)
+        num = max(1, num-3)
         self._courier_pool = CourierPool(couriers[start:start+num])
         return num
 
@@ -210,7 +210,7 @@ class Zone(object):
         """
         print "planning %s..." % self._zone
 
-        # o2o_orders' plan, new a o2o action, and extend it with eb orders
+        # o2o_orders' plan, new a o2o action
         o2os = self._o2o_orders_start.remain()
         pickup_time = list(set([(o.shop(), o._pickup_time) for o in o2os]))
         pickup_time.sort(key=lambda x: x[1], reverse=True)
@@ -231,7 +231,8 @@ class Zone(object):
             while True:
                 courier = self._courier_pool.get(t[1], t[1]+cost)
                 if not courier or no_courier == self._courier_pool.size():
-                    print "No courier can match up"
+                    print "No courier can match up, interval: %d--%d" \
+                            % (t[1], t[1]+cost)
                     # no_courier = True
                     break
                 no_courier += 1
@@ -298,7 +299,7 @@ class Zone(object):
                     # continue
                 # print 'planned: %s, cost: %d' % (planned_orders, real_cost)
                 # generate an eb order action based on dp
-                if end == 840:
+                if end == utils.LAST:
                     courier.assgin(Action(s_point, e_point, start, start+real_cost, planned_orders))
                 else:
                     courier.assgin(Action(s_point, e_point, end-real_cost, end, planned_orders))
@@ -323,7 +324,7 @@ if __name__ == '__main__':
 
     conn = sqlite3.connect('./Data/data.db')
     # zone1 = Zone(conn, 'A001', (121.486181, 31.270203))
-    zone1 = Zone(conn, 'A006', (121.521952,31.095357))
+    zone1 = Zone(conn, 'A116', (121.226536,31.01312381))
     couriers = [Courier('D%04d'%i) for i in xrange(1, TOTAL + 1)]
     last = zone1.initial_courier_pool(couriers, 0)
     # print zone1

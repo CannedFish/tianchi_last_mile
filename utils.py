@@ -46,7 +46,7 @@ def time2minutes(timestr):
     return (int(ret[0]) - 8) * 60 + int(ret[1])
 
 # latest delivery time of online orders
-LAST = time2minutes('22:00')
+LAST = time2minutes('20:00')
 
 if __name__ == "__main__":
     print "Test distance (121.511363, 31.273124) and (121.445216,31.120448): %f" \
