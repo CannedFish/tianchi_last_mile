@@ -264,14 +264,15 @@ class Zone(object):
         print "O2O assigned"
 
         # es_orders' plan
+        no_courier = 0
+        courier = self._courier_pool.get()
         while True:
+            if not courier or no_courier == self._courier_pool.size():
+                print "%s has no courier free" % self._zone
+                break
             orders = self._eb_orders.remain()
             if len(orders) == 0:
                 print "EB assgined"
-                break
-            courier = self._courier_pool.get()
-            if not courier:
-                print "%s has no courier free" % self._zone
                 break
             interval = courier.get_interval()
             if interval:
@@ -281,8 +282,8 @@ class Zone(object):
                 # import pdb
                 # pdb.set_trace()
                 action_before, action_next = courier.two_actions(start, end)
-                if action_before and action_before._orders[-1]._target_type == 'shop':
-                    print self._zone
+                # if action_before and action_before._orders[-1]._target_type == 'shop':
+                    # print self._zone
                 s_point = self._center if not action_before else action_before._e_point
                 if not self.is_center(s_point):
                     courier.ins_interval_query()
@@ -292,19 +293,23 @@ class Zone(object):
                         e_point, end-start, self.is_center(s_point), self.is_center(e_point))
                 if real_cost == 0:
                     courier.ins_interval_query()
-                if len(planned_orders) == 0:
                     continue
+                # if len(planned_orders) == 1:
+                    # continue
                 # print 'planned: %s, cost: %d' % (planned_orders, real_cost)
                 # generate an eb order action based on dp
                 if end == 840:
                     courier.assgin(Action(s_point, e_point, start, start+real_cost, planned_orders))
                 else:
                     courier.assgin(Action(s_point, e_point, end-real_cost, end, planned_orders))
+            else:
+                # print "no_courier:", no_courier
+                no_courier += 1
+                courier = self._courier_pool.get()
         
+        # print self._courier_pool
         with file("./Data/result.rc", "a") as f:
             f.write("<%s>\n%r\n" % (self._zone, self._courier_pool))
-            # f.write("%r" % self._courier_pool)
-        # print self._courier_pool
 
         return len(self._eb_orders.remain()) + len(self._o2o_orders_start.remain())
 
@@ -318,7 +323,7 @@ if __name__ == '__main__':
 
     conn = sqlite3.connect('./Data/data.db')
     # zone1 = Zone(conn, 'A001', (121.486181, 31.270203))
-    zone1 = Zone(conn, 'A004', (121.492507, 31.234015))
+    zone1 = Zone(conn, 'A006', (121.521952,31.095357))
     couriers = [Courier('D%04d'%i) for i in xrange(1, TOTAL + 1)]
     last = zone1.initial_courier_pool(couriers, 0)
     # print zone1

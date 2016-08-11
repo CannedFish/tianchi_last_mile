@@ -12,6 +12,7 @@ class Action(object):
         self._orders = orders
         self._calc_travel_time()
         self._calc_offset()
+        self._type = orders[0]._type
 
     def __lt__(self, other):
         return self._e_time <= other._s_time
@@ -54,6 +55,9 @@ class Action(object):
     def start_point(self):
         return self._orders[0].src_id()
 
+    def action_type(self):
+        return self._type
+
 class Courier(object):
     def __init__(self, c_id):
         self._id = c_id
@@ -71,7 +75,10 @@ class Courier(object):
                 "\n".join([str(a) for a in self._actions]))
 
     def __repr__(self):
-        self._arrival = 0
+        if len(self._actions) == 0:
+            return ""
+        self._arrival = 0 if self._actions[0].action_type()=='eb' \
+                else self._actions[0]._s_time
         path = ""
         for action in self._actions:
             ac = "%r" % action
