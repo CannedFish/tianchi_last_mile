@@ -242,6 +242,10 @@ class Zone(object):
                     end2site = utils.travel_time(utils.distance(end, self._center))
                     plan.append(pickup_order)
                     e_time = t[1]+cost+end2site
+                    # if e_time > utils.LAST:
+                        # e_time -= end2site
+                        # plan.pop()
+                        # plan.append(EBOrder(('Empty', 'fake', 0, 0, 1), ('site_id', (0,0))))
                     courier.assgin(Action(t[0], self._center, t[1], e_time, plan))
                     break
                 # Not the first o2o order
@@ -290,6 +294,8 @@ class Zone(object):
                     courier.ins_interval_query()
                     continue
                 e_point = self._center if not action_next else action_next._s_point
+                # TODO: if e_point is a shop, calc again to determine wether to return to
+                # site or not
                 planned_orders, real_cost = Zone.plan_by_DP(orders, self._center, s_point, \
                         e_point, end-start, self.is_center(s_point), self.is_center(e_point))
                 if real_cost == 0:
@@ -299,10 +305,11 @@ class Zone(object):
                     # continue
                 # print 'planned: %s, cost: %d' % (planned_orders, real_cost)
                 # generate an eb order action based on dp
-                if end == utils.LAST:
-                    courier.assgin(Action(s_point, e_point, start, start+real_cost, planned_orders))
-                else:
-                    courier.assgin(Action(s_point, e_point, end-real_cost, end, planned_orders))
+                courier.assgin(Action(s_point, e_point, start, start+real_cost, planned_orders))
+                # if end == utils.LAST:
+                    # courier.assgin(Action(s_point, e_point, start, start+real_cost, planned_orders))
+                # else:
+                    # courier.assgin(Action(s_point, e_point, end-real_cost, end, planned_orders))
             else:
                 # print "no_courier:", no_courier
                 no_courier += 1
@@ -323,8 +330,8 @@ if __name__ == '__main__':
     import sqlite3, sys
 
     conn = sqlite3.connect('./Data/data.db')
-    # zone1 = Zone(conn, 'A001', (121.486181, 31.270203))
-    zone1 = Zone(conn, 'A116', (121.226536,31.01312381))
+    zone1 = Zone(conn, 'A001', (121.486181, 31.270203))
+    # zone1 = Zone(conn, 'A116', (121.226536,31.01312381))
     couriers = [Courier('D%04d'%i) for i in xrange(1, TOTAL + 1)]
     last = zone1.initial_courier_pool(couriers, 0)
     # print zone1

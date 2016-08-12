@@ -25,9 +25,10 @@ class Action(object):
         arr = self._courier.recent_arrival()
         fmt = "%s,%s,%s,%s,%d,%s"
         s_point = self.start_point()
-        s1 = [fmt % (self._courier._id, s_point, arr, self._s_time, o.num(), o._id) \
-                for o in self._orders[:-1]]
-        # TODO: if the first order is an o2o, modify it arrival time!!
+        s1 = [fmt % (self._courier._id, s_point, arr,\
+                self._s_time, self._orders[0].num(), self._orders[0]._id)]
+        s1.extend([fmt % (self._courier._id, s_point, self._s_time, self._s_time, o.num(), o._id) \
+                for o in self._orders[1:-1]])
         s2 = map(lambda o,a,off: fmt % \
                 (self._courier._id, o._spot_id, off+a, off+a+o.part_time(), -o.num(), o._id), \
                 self._orders[:-1], self._t_time, self._offset)
@@ -98,6 +99,7 @@ class Courier(object):
         action.set_courier(self)
         self._actions.append(action)
         self._actions.sort()
+        self._free_time[-1] = max(self._free_time[-1], action._e_time)
         self._free_time.extend([action._s_time, action._e_time])
         self._free_time.sort()
 
@@ -130,9 +132,9 @@ class Courier(object):
         f_times = self.free_time()
         if len(f_times) == self._s_idx:
             return None
-        f_times.reverse()
-        if f_times[0][1] == utils.LAST:
-            f_times.append(f_times.pop(0))
+        # f_times.reverse()
+        # if f_times[0][1] == utils.LAST:
+            # f_times.append(f_times.pop(0))
         # print f_times, self._s_idx
         return f_times[self._s_idx]
 
